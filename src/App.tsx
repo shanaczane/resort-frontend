@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import LandingPage from "./pages/LandingPage";
 import BookingPage from "./pages/BookingPage";
-import GuestPortal from "./pages/GuestPortal";
-import OperatorDashboard from "./pages/OperatorDashboard";
-import LoginPage from "./pages/LoginPage";
-import AdminLogin from "./pages/AdminLogin";
+import GuestPortal from "./pages/Guest/GuestPortal";
+import OperatorDashboard from "./pages/Operator/OperatorDashboard";
+import LoginPage from "./pages/Authentication/LoginPage";
+import AdminLogin from "./pages/Authentication/AdminLogin";
 import './index.css'
 
 const App: React.FC = () => {

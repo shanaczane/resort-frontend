@@ -1,8 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; 
+import axios from "axios";
 
-// TypeScript interfaces
 interface User {
   id: string;
   email: string;
@@ -14,8 +13,13 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    fullName: string
+  ) => Promise<void>; // Added for signup
+  guestLogin: (roomNumber: string, fullName: string) => Promise<void>;
   logout: () => void;
-  guestLogin: (roomNumber: string, fullName: string) => Promise<void>; // For post-check-in guest portal
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -31,20 +35,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  // Check for existing token on mount
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (token) {
-      // Validate token via API (e.g., fetch user profile)
       axios
         .get("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
         .then((response) => {
           setUser(response.data.user);
           setIsAuthenticated(true);
         })
-        .catch(() => {
-          localStorage.removeItem("jwtToken");
-        });
+        .catch(() => localStorage.removeItem("jwtToken"));
     }
   }, []);
 
@@ -55,15 +55,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem("jwtToken", token);
       setUser(userData);
       setIsAuthenticated(true);
-      // Redirect based on role
-      if (userData.role === "operator") {
-        navigate("/operator-dashboard");
-      } else {
-        navigate("/guest-portal");
-      }
+      navigate(
+        userData.role === "operator" ? "/operator-dashboard" : "/guest-portal"
+      );
     } catch (error) {
       console.error("Login failed:", error);
-      throw error; 
+      throw error;
+    }
+  };
+
+  const register = async (
+    email: string,
+    password: string,
+    fullName: string
+  ) => {
+    try {
+      const response = await axios.post("/api/auth/register", {
+        email,
+        password,
+        fullName,
+      });
+      const { token, user: userData } = response.data;
+      localStorage.setItem("jwtToken", token);
+      setUser(userData);
+      setIsAuthenticated(true);
+      navigate("/book"); // Redirect to booking after signup
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
     }
   };
 
@@ -93,18 +112,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, login, logout, guestLogin }}
+      value={{ user, isAuthenticated, login, register, guestLogin, logout }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook for using context
 export const useAuth = () => {
   const context = React.useContext(AuthContext);
-  if (undefined === context) {
+  if (undefined === context)
     throw new Error("useAuth must be used within an AuthProvider");
-  }
   return context;
 };
